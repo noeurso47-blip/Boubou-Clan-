@@ -448,7 +448,8 @@ function render() {
 
 // Listeners modales
 // Listeners initialisés après chargement DOM
-function initListeners() {
+document.addEventListener('DOMContentLoaded', () => {
+  // Listeners modales
   document.getElementById('modalConfirm').onclick = confirmAdd;
   document.getElementById('modalCancelAdd').onclick = closeModalAdd;
   document.getElementById('modalAddBg').onclick = e => { if (e.target === document.getElementById('modalAddBg')) closeModalAdd(); };
@@ -457,24 +458,17 @@ function initListeners() {
   document.getElementById('causeMortCancel').onclick = closeCauseMort;
   document.getElementById('causeMortBg').onclick = e => { if (e.target === document.getElementById('causeMortBg')) closeCauseMort(); };
   document.getElementById('causeMortTxt').addEventListener('keydown', e => { if (e.key === 'Escape') closeCauseMort(); });
-}
 
-async function init() {
-  try {
-    await fetchData();
+  // Lancement
+  fetchData().then(() => {
     document.getElementById('loadingOverlay').style.display = 'none';
     render();
     setSyncBar('✓ Registre chargé — modifications partagées avec tous', 'saved');
     setTimeout(() => setSyncBar('Clic gauche = changer statut | Clic droit (décédé) = cause de mort', ''), 3000);
-  } catch(e) {
+  }).catch(() => {
     document.getElementById('loadingOverlay').innerHTML = '<p style="font-family:Cinzel,serif;color:#8b1a1a;font-size:13px;padding:20px;text-align:center">Erreur de connexion.<br>Vérifiez la base de données Supabase.</p>';
     setSyncBar('✕ Connexion impossible', 'error');
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  initListeners();
-  init();
+  });
 });
 </script>
 </body>
