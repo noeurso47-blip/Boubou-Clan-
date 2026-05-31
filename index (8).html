@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Arbre Généalogique — Lignée Boubou</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=IM+Fell+English&display=swap" rel="stylesheet"/>
+<style>
+  :root{--sand:#c8a96e;--sand-dark:#8b6914;--sand-deep:#5c3d0e;--parchment-dark:#d4b87a;--ink:#2c1a06;--red-seal:#8b1a1a;--green-alive:#2d6b2d;--aged:#a07840}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:linear-gradient(160deg,#1a0e05 0%,#2c1a06 30%,#1a0e05 60%,#3d2208 100%);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;font-family:'IM Fell English',serif}
+  .scroll-wrapper{width:100%;max-width:960px}
+  .scroll-top,.scroll-bottom{height:26px;background:linear-gradient(90deg,#5c3d0e,#8b6914,#c8a96e,#d4b87a,#c8a96e,#8b6914,#5c3d0e);border-radius:13px;position:relative;z-index:2}
+  .scroll-top::before,.scroll-bottom::before,.scroll-top::after,.scroll-bottom::after{content:'';position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;background:radial-gradient(circle,#d4b87a,#8b6914,#5c3d0e);border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.5)}
+  .scroll-top::before,.scroll-bottom::before{left:-8px}
+  .scroll-top::after,.scroll-bottom::after{right:-8px}
+  .scroll-body{background:linear-gradient(180deg,#e8d0a0,#f2e4b8 10%,#ede0b0 50%,#f0dfa8 90%,#e8d0a0);padding:24px 36px 80px;margin:-6px 14px;border-left:2px solid var(--sand-dark);border-right:2px solid var(--sand-dark);position:relative}
+  .scroll-body::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 28px,rgba(139,105,20,0.05) 28px,rgba(139,105,20,0.05) 29px);pointer-events:none}
+  .kanji{font-size:16px;color:var(--sand-dark);opacity:.6;letter-spacing:12px;text-align:center;margin-bottom:4px}
+  .main-title{text-align:center;margin-bottom:6px}
+  .main-title h1{font-family:'Cinzel',serif;font-size:20px;font-weight:700;color:var(--ink);letter-spacing:2px;text-transform:uppercase}
+  .main-title .sub{font-size:11px;color:var(--sand-dark);letter-spacing:5px;margin-top:3px}
+  .divider{display:flex;align-items:center;gap:12px;margin:10px 0 8px}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--sand-dark),transparent)}
+  .divider span{font-size:15px;color:var(--sand-dark)}
+  .sync-bar{text-align:center;font-family:'Cinzel',serif;font-size:9px;min-height:18px;margin-bottom:10px;transition:color .3s}
+  .sync-bar.loading{color:var(--sand-dark)}
+  .sync-bar.saving{color:#a07840}
+  .sync-bar.saved{color:var(--green-alive)}
+  .sync-bar.error{color:#8b1a1a}
+  .layout{display:flex;gap:16px;align-items:flex-start}
+  .side-left,.side-right{min-width:105px;flex-shrink:0}
+  .center-tree{flex:1;min-width:0}
+  .panel-card{border:1.5px solid var(--sand-dark);background:rgba(139,105,20,0.06);padding:8px;border-radius:2px;font-size:8px;color:var(--sand-deep);line-height:1.5;margin-bottom:8px}
+  .panel-title{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:1.5px;text-align:center;color:var(--ink);margin-bottom:4px;border-bottom:.5px solid var(--sand-dark);padding-bottom:3px}
+  .gen-block{margin-bottom:16px}
+  .gen-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .gen-label{font-family:'Cinzel',serif;font-size:10px;color:var(--aged);letter-spacing:2px;flex:1}
+  .gen-count{font-family:'Cinzel',serif;font-size:8px;color:var(--sand-dark);opacity:.7}
+  .btn-add{background:rgba(139,105,20,0.12);border:1px dashed var(--sand-dark);color:var(--sand-dark);font-family:'Cinzel',serif;font-size:8px;padding:3px 10px;border-radius:2px;cursor:pointer;transition:background .2s;white-space:nowrap;flex-shrink:0}
+  .btn-add:hover{background:rgba(139,105,20,0.28)}
+  .gen-row{display:flex;flex-wrap:wrap;gap:10px;min-height:20px;padding:4px 0}
+  .gen-empty{font-family:'Cinzel',serif;font-size:8px;color:rgba(139,105,20,0.4);font-style:italic;padding:6px 0;letter-spacing:1px}
+  .rat-node{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;transition:transform .15s;user-select:none;position:relative;max-width:60px}
+  .rat-node:hover{transform:scale(1.08)}
+  .rat-circle{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;font-size:24px;line-height:1;background:radial-gradient(circle at 35% 35%,#f5e8c8,var(--parchment-dark));transition:border-color .3s,filter .3s,box-shadow .3s}
+  .rat-circle.alive{border:2.5px solid var(--green-alive);box-shadow:0 0 8px rgba(45,107,45,0.3)}
+  .rat-circle.dead{border:2.5px solid #8b1a1a;filter:saturate(.55) brightness(.88)}
+  .rat-circle.dead::after{content:'✕';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:25px;color:rgba(139,26,26,.8);font-family:'Cinzel',serif;font-weight:700}
+  .rat-name{font-size:7.5px;color:var(--ink);letter-spacing:.3px;text-align:center;font-family:'Cinzel',serif;white-space:nowrap}
+  .cause-tag{font-size:6.5px;color:#8b1a1a;font-family:'IM Fell English',serif;text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:italic;opacity:.85}
+  .cause-tag.vide{color:rgba(139,26,26,0.35)}
+  .tooltip-tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink);color:#f2e4b8;font-family:'Cinzel',serif;font-size:8px;padding:4px 8px;border-radius:2px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10;max-width:200px;white-space:normal;text-align:center;line-height:1.4}
+  .rat-node:hover .tooltip-tip{opacity:1}
+  .bilan-bar{text-align:center;font-family:'Cinzel',serif;font-size:12px;letter-spacing:3px;color:var(--ink);border:2px solid var(--sand-dark);padding:8px 20px;background:rgba(139,105,20,0.08);margin-top:14px;position:relative}
+  .bilan-bar::before,.bilan-bar::after{content:'✦';position:absolute;top:50%;transform:translateY(-50%);color:var(--sand-dark);font-size:14px}
+  .bilan-bar::before{left:8px}
+  .bilan-bar::after{right:8px}
+  .stats{display:flex;justify-content:center;gap:20px;margin-top:8px;font-family:'Cinzel',serif;font-size:10px}
+  .stat-alive{color:var(--green-alive)}
+  .stat-dead{color:#8b1a1a}
+  .stat-total{color:var(--aged)}
+  .red-stamp{position:absolute;bottom:16px;right:16px;width:56px;height:56px;border:2.5px solid var(--red-seal);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--red-seal);font-family:'Cinzel',serif;font-size:7px;text-align:center;letter-spacing:.5px;opacity:.6;line-height:1.3;transform:rotate(-12deg)}
+  .corner{position:absolute;font-size:22px;color:rgba(139,105,20,0.25);font-family:serif;pointer-events:none}
+  .loading-overlay{position:absolute;inset:0;background:rgba(242,228,184,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;gap:12px;border-radius:2px}
+  .loading-overlay p{font-family:'Cinzel',serif;font-size:14px;color:var(--ink);letter-spacing:2px}
+  .spinner{width:32px;height:32px;border:3px solid var(--sand-dark);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  /* Modales */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:100;align-items:center;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{background:linear-gradient(180deg,#f2e4b8,#e8d0a0);border:2px solid var(--sand-dark);border-radius:4px;padding:24px 28px;width:340px;font-family:'Cinzel',serif;box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+  .modal h3{font-size:14px;color:var(--ink);letter-spacing:2px;text-align:center;margin-bottom:16px;border-bottom:1px solid var(--sand-dark);padding-bottom:10px}
+  .modal label{font-size:10px;color:var(--sand-deep);letter-spacing:1px;display:block;margin-bottom:4px;margin-top:10px}
+  .modal input[type=text]{width:100%;border:1.5px solid var(--sand-dark);background:rgba(255,240,200,0.6);padding:7px 10px;font-family:'Cinzel',serif;font-size:12px;color:var(--ink);border-radius:2px;outline:none}
+  .modal input[type=text]:focus{border-color:var(--sand-deep);background:rgba(255,248,220,0.9)}
+  .modal textarea{width:100%;border:1.5px solid var(--sand-dark);background:rgba(255,240,200,0.6);padding:7px 10px;font-family:'IM Fell English',serif;font-size:12px;color:var(--ink);border-radius:2px;outline:none;resize:vertical;min-height:72px;line-height:1.5}
+  .modal textarea:focus{border-color:var(--sand-deep);background:rgba(255,248,220,0.9)}
+  .status-row{display:flex;gap:16px;margin-top:4px}
+  .status-opt{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--sand-deep);font-family:'Cinzel',serif}
+  .modal-btns{display:flex;gap:10px;margin-top:18px}
+  .btn-confirm{flex:1;background:rgba(45,107,45,0.15);border:1.5px solid var(--green-alive);color:#1a4a1a;font-family:'Cinzel',serif;font-size:10px;padding:8px;border-radius:2px;cursor:pointer;letter-spacing:1px;transition:background .2s}
+  .btn-confirm:hover{background:rgba(45,107,45,0.28)}
+  .btn-cancel-m{flex:1;background:rgba(139,26,26,0.1);border:1.5px solid #8b1a1a;color:#8b1a1a;font-family:'Cinzel',serif;font-size:10px;padding:8px;border-radius:2px;cursor:pointer;letter-spacing:1px;transition:background .2s}
+  .btn-cancel-m:hover{background:rgba(139,26,26,0.2)}
+  .gen-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(139,105,20,0.25),transparent);margin-bottom:16px}
+  .cause-section{display:none;margin-top:8px}
+  .cause-section.visible{display:block}
+</style>
+</head>
+<body>
+<div class="scroll-wrapper">
+  <div class="scroll-top"></div>
+  <div class="scroll-body">
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="spinner"></div>
+      <p>Chargement du registre...</p>
+    </div>
+    <span class="corner" style="top:8px;left:10px">⌘</span>
+    <span class="corner" style="top:8px;right:10px">⌘</span>
+
+    <div class="kanji">砂 忍 族</div>
+    <div class="main-title">
+      <h1>Arbre Généalogique de la Lignée des Boubou</h1>
+      <div class="sub">Registre Officiel — Village Caché du Sable</div>
+    </div>
+    <div class="divider"><span>⚔</span></div>
+    <div class="sync-bar loading" id="syncBar">↻ Connexion au registre partagé...</div>
+
+    <div class="layout">
+      <div class="side-left">
+        <div class="panel-card">
+          <div class="panel-title">Suna Village</div>
+          <svg viewBox="0 0 90 90" width="86" style="display:block;margin:0 auto 6px">
+            <circle cx="45" cy="45" r="42" fill="none" stroke="#8b6914" stroke-width="2"/>
+            <circle cx="45" cy="45" r="37" fill="rgba(139,105,20,0.07)" stroke="#8b6914" stroke-width="0.8"/>
+            <path d="M45 8 L49 38 L45 42 L41 38 Z" fill="#5c3d0e"/>
+            <path d="M82 45 L52 49 L48 45 L52 41 Z" fill="#5c3d0e"/>
+            <path d="M45 82 L41 52 L45 48 L49 52 Z" fill="#5c3d0e"/>
+            <path d="M8 45 L38 41 L42 45 L38 49 Z" fill="#5c3d0e"/>
+            <circle cx="45" cy="45" r="10" fill="#5c3d0e"/>
+            <circle cx="45" cy="45" r="7" fill="#d4b87a"/>
+            <text x="45" y="50" text-anchor="middle" font-family="serif" font-size="10" fill="#5c3d0e" font-weight="bold">砂</text>
+            <text x="45" y="76" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#8b6914" letter-spacing="3">SUNA</text>
+          </svg>
+          <div style="text-align:center;font-size:8px;line-height:1.6;color:#5c3d0e">Registre Officiel<br>du Clan Boubou</div>
+        </div>
+        <div class="panel-card">
+          <div class="panel-title">Sync</div>
+          <div style="text-align:center;font-size:8px;line-height:1.6;color:#5c3d0e">Base de données<br>partagée<br>en temps réel</div>
+        </div>
+      </div>
+
+      <div class="center-tree" id="centerTree"></div>
+
+      <div class="side-right">
+        <div class="panel-card">
+          <div class="panel-title">Légende</div>
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
+            <div style="width:14px;height:14px;border-radius:50%;border:2px solid #2d6b2d;flex-shrink:0"></div>
+            <span style="font-size:8px;color:#5c3d0e">Vivant(e)</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
+            <div style="width:14px;height:14px;border-radius:50%;border:2px solid #8b1a1a;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#8b1a1a;font-weight:700">✕</div>
+            <span style="font-size:8px;color:#5c3d0e">Décédé(e)</span>
+          </div>
+          <div style="border-top:.5px solid var(--sand-dark);padding-top:5px;font-size:8px;color:#5c3d0e;font-style:italic">Cliquez pour<br>changer le statut.<br><br>Clic droit sur<br>un décédé pour<br>la cause de mort.</div>
+        </div>
+        <div class="panel-card">
+          <div class="panel-title">Référence</div>
+          <div style="font-size:8px;line-height:1.7;color:#5c3d0e;text-align:center"><span style="font-family:Cinzel,serif;letter-spacing:1px">Nagi Sabakuma</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bilan-bar">Bilan de la Lignée "Boubou"</div>
+    <div class="stats">
+      <span class="stat-alive">◉ Vivants : <strong id="countAlive">0</strong></span>
+      <span class="stat-dead">✕ Décédés : <strong id="countDead">0</strong></span>
+      <span class="stat-total">Total : <strong id="countTotal">0</strong></span>
+    </div>
+    <div class="red-stamp">SCEAU<br>DU<br>VILLAGE<br>砂隠</div>
+  </div>
+  <div class="scroll-bottom"></div>
+</div>
+
+<!-- Modal ajout nouveau Boubou -->
+<div class="modal-bg" id="modalAddBg">
+  <div class="modal">
+    <h3>✦ Nouveau Boubou ✦</h3>
+    <label>Nom</label>
+    <input type="text" id="modalName" placeholder="ex: Boubou 33"/>
+    <label>Génération</label>
+    <input type="text" id="modalGenDisplay" readonly style="background:rgba(139,105,20,0.12);cursor:default;color:var(--aged)"/>
+    <label>Statut initial</label>
+    <div class="status-row">
+      <label class="status-opt"><input type="radio" name="mStatus" value="true" checked/> ◉ Vivant</label>
+      <label class="status-opt"><input type="radio" name="mStatus" value="false"/> ✕ Décédé</label>
+    </div>
+    <div class="cause-section" id="addCauseSection">
+      <label>Cause de la mort</label>
+      <textarea id="addCauseTxt" placeholder="Ex: Mort au combat lors de la mission de Suna..."></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-confirm" id="modalConfirm">⊕ Ajouter au registre</button>
+      <button class="btn-cancel-m" id="modalCancelAdd">✕ Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal cause de mort -->
+<div class="modal-bg" id="modalCauseBg">
+  <div class="modal">
+    <h3 id="causeMortTitle">✕ Cause de la mort ✕</h3>
+    <label>Cause de la mort de <span id="causeMortName" style="color:var(--ink)"></span></label>
+    <textarea id="causeMortTxt" placeholder="Ex: Mort au combat lors de la mission de Suna..."></textarea>
+    <div class="modal-btns">
+      <button class="btn-confirm" id="causeMortConfirm">⚔ Enregistrer</button>
+      <button class="btn-cancel-m" id="causeMortCancel">✕ Annuler</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Désactiver le service worker Netlify qui bloque les requêtes
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+}
+
+const SUPABASE_URL = 'https://sqwqligixzcjjlinyitl.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ZDnLtHA8y-vbUkm4HM816A_eJxQlGW1';
+const TABLE = 'boubou_statuses';
+const GENERATIONS = ['I','II','III','IV','V','VI','VII','VIII','IX'];
+
+let allBoubous = [];
+let saveTimer = null;
+let currentAddGen = null;
+let currentCauseId = null;
+
+function setSyncBar(msg, cls) {
+  const b = document.getElementById('syncBar');
+  b.textContent = msg;
+  b.className = 'sync-bar ' + (cls||'');
+}
+
+const H = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY,
+  'Content-Type': 'application/json'
+};
+
+async function fetchData() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?select=id,alive,generation,cause_mort&order=id`, {headers: H});
+  if (!res.ok) throw new Error('Fetch failed');
+  allBoubous = await res.json();
+}
+
+async function patchBoubou(id, fields) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: {...H, 'Prefer': 'return=minimal'},
+    body: JSON.stringify(fields)
+  });
+  if (!res.ok) throw new Error('Patch failed');
+}
+
+async function insertBoubou(id, alive, generation, cause_mort) {
+  const body = {id, alive, generation};
+  if (cause_mort) body.cause_mort = cause_mort;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
+    method: 'POST',
+    headers: {...H, 'Prefer': 'return=minimal'},
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('Insert failed');
+}
+
+// Toggle vivant/mort — si on passe à mort, ouvre la modal cause
+function toggle(id) {
+  const b = allBoubous.find(x => x.id === id);
+  if (!b) return;
+  const wasAlive = b.alive;
+  b.alive = !b.alive;
+  // Si on vient de mourir, proposer la cause
+  if (wasAlive && !b.alive) {
+    render();
+    savePatch(id, {alive: false});
+    openCauseMort(id);
+  } else {
+    // Revient à la vie : efface la cause
+    b.cause_mort = null;
+    render();
+    savePatch(id, {alive: true, cause_mort: null});
+  }
+}
+
+function savePatch(id, fields) {
+  setSyncBar('↻ Sauvegarde en cours...', 'saving');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      await patchBoubou(id, fields);
+      setSyncBar('✓ Sauvegardé — visible par tous les ninja', 'saved');
+      setTimeout(() => setSyncBar('Clic gauche = changer statut | Clic droit (décédé) = cause de mort', ''), 3500);
+    } catch(e) {
+      setSyncBar('✕ Erreur de sauvegarde — réessayez', 'error');
+    }
+  }, 400);
+}
+
+// Modal cause de mort
+function openCauseMort(id) {
+  const b = allBoubous.find(x => x.id === id);
+  if (!b) return;
+  currentCauseId = id;
+  document.getElementById('causeMortName').textContent = id;
+  document.getElementById('causeMortTxt').value = b.cause_mort || '';
+  document.getElementById('causeMortBg').classList.add('open');
+  setTimeout(() => document.getElementById('causeMortTxt').focus(), 50);
+}
+
+function closeCauseMort() {
+  document.getElementById('causeMortBg').classList.remove('open');
+  currentCauseId = null;
+}
+
+async function saveCauseMort() {
+  const cause = document.getElementById('causeMortTxt').value.trim();
+  const id = currentCauseId;
+  const b = allBoubous.find(x => x.id === id);
+  if (b) b.cause_mort = cause || null;
+  closeCauseMort();
+  render();
+  setSyncBar('↻ Enregistrement de la cause de mort...', 'saving');
+  try {
+    await patchBoubou(id, {cause_mort: cause || null});
+    setSyncBar('✓ Cause de mort enregistrée', 'saved');
+    setTimeout(() => setSyncBar('Clic gauche = changer statut | Clic droit (décédé) = cause de mort', ''), 3500);
+  } catch(e) {
+    setSyncBar('✕ Erreur lors de l\'enregistrement', 'error');
+  }
+}
+
+// Modal ajout
+function openModalAdd(gen) {
+  currentAddGen = gen;
+  const allNums = allBoubous.map(b => { const m = b.id.match(/\d+/); return m ? parseInt(m[0]) : 0; });
+  const maxNum = allNums.length ? Math.max(...allNums) : 0;
+  document.getElementById('modalName').value = 'Boubou ' + (maxNum + 1);
+  document.getElementById('modalGenDisplay').value = 'Génération ' + gen;
+  document.querySelector('input[name="mStatus"][value="true"]').checked = true;
+  document.getElementById('addCauseSection').classList.remove('visible');
+  document.getElementById('addCauseTxt').value = '';
+  document.getElementById('modalAddBg').classList.add('open');
+  setTimeout(() => { const i = document.getElementById('modalName'); i.focus(); i.select(); }, 50);
+}
+
+function closeModalAdd() {
+  document.getElementById('modalAddBg').classList.remove('open');
+  currentAddGen = null;
+}
+
+async function confirmAdd() {
+  const name = document.getElementById('modalName').value.trim();
+  if (!name) { document.getElementById('modalName').focus(); return; }
+  if (allBoubous.find(b => b.id === name)) { alert('Ce nom existe déjà dans le registre !'); return; }
+  const alive = document.querySelector('input[name="mStatus"]:checked').value === 'true';
+  const cause = document.getElementById('addCauseTxt').value.trim();
+  const gen = currentAddGen;
+  closeModalAdd();
+  setSyncBar('↻ Ajout de ' + name + ' au registre...', 'saving');
+  try {
+    await insertBoubou(name, alive, gen, !alive && cause ? cause : null);
+    allBoubous.push({id: name, alive, generation: gen, cause_mort: !alive && cause ? cause : null});
+    render();
+    setSyncBar('✓ ' + name + ' ajouté à la Génération ' + gen + ' !', 'saved');
+    setTimeout(() => setSyncBar('Clic gauche = changer statut | Clic droit (décédé) = cause de mort', ''), 3500);
+  } catch(e) {
+    setSyncBar('✕ Erreur lors de l\'ajout — réessayez', 'error');
+  }
+}
+
+// Afficher/cacher champ cause selon statut choisi
+document.addEventListener('change', e => {
+  if (e.target.name === 'mStatus') {
+    const sec = document.getElementById('addCauseSection');
+    if (e.target.value === 'false') sec.classList.add('visible');
+    else sec.classList.remove('visible');
+  }
+});
+
+function render() {
+  const tree = document.getElementById('centerTree');
+  tree.innerHTML = '';
+
+  GENERATIONS.forEach((gen, idx) => {
+    const members = allBoubous.filter(b => b.generation === gen);
+    const block = document.createElement('div');
+    block.className = 'gen-block';
+
+    const header = document.createElement('div');
+    header.className = 'gen-header';
+    const lbl = document.createElement('div');
+    lbl.className = 'gen-label';
+    lbl.textContent = 'Génération ' + gen;
+    const count = document.createElement('span');
+    count.className = 'gen-count';
+    count.textContent = members.length ? members.length + ' ninja' : 'vide';
+    const btn = document.createElement('button');
+    btn.className = 'btn-add';
+    btn.textContent = '+ Ajouter';
+    btn.onclick = () => openModalAdd(gen);
+    header.appendChild(lbl);
+    header.appendChild(count);
+    header.appendChild(btn);
+
+    const row = document.createElement('div');
+    row.className = 'gen-row';
+
+    if (members.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'gen-empty';
+      empty.textContent = '— Aucun membre enregistré —';
+      row.appendChild(empty);
+    } else {
+      members.forEach(b => {
+        const node = document.createElement('div');
+        node.className = 'rat-node';
+        // Clic gauche = toggle
+        node.onclick = () => toggle(b.id);
+        // Clic droit = cause de mort si décédé
+        node.oncontextmenu = (e) => {
+          e.preventDefault();
+          if (!b.alive) openCauseMort(b.id);
+        };
+
+        const causeText = !b.alive ? (b.cause_mort ? b.cause_mort : '— cause inconnue —') : '';
+        const tooltipText = b.alive
+          ? '✓ Vivant — clic pour marquer décédé'
+          : '✕ Décédé' + (b.cause_mort ? '\n' + b.cause_mort : '') + '\nClic droit : modifier la cause';
+
+        node.innerHTML = `
+          <div class="rat-circle ${b.alive ? 'alive' : 'dead'}">🐀</div>
+          <div class="rat-name">${b.id}</div>
+          ${!b.alive ? `<div class="cause-tag ${b.cause_mort ? '' : 'vide'}" title="${b.cause_mort || ''}">${b.cause_mort ? b.cause_mort : '— inconnue —'}</div>` : ''}
+          <div class="tooltip-tip">${tooltipText}</div>
+        `;
+        row.appendChild(node);
+      });
+    }
+
+    block.appendChild(header);
+    block.appendChild(row);
+
+    if (idx < GENERATIONS.length - 1) {
+      const divLine = document.createElement('div');
+      divLine.className = 'gen-divider';
+      divLine.style.marginTop = '12px';
+      block.appendChild(divLine);
+    }
+    tree.appendChild(block);
+  });
+
+  document.getElementById('countAlive').textContent = allBoubous.filter(b => b.alive).length;
+  document.getElementById('countDead').textContent = allBoubous.filter(b => !b.alive).length;
+  document.getElementById('countTotal').textContent = allBoubous.length;
+}
+
+// Listeners modales
+// Listeners initialisés après chargement DOM
+function initListeners() {
+  document.getElementById('modalConfirm').onclick = confirmAdd;
+  document.getElementById('modalCancelAdd').onclick = closeModalAdd;
+  document.getElementById('modalAddBg').onclick = e => { if (e.target === document.getElementById('modalAddBg')) closeModalAdd(); };
+  document.getElementById('modalName').addEventListener('keydown', e => { if (e.key === 'Enter') confirmAdd(); if (e.key === 'Escape') closeModalAdd(); });
+  document.getElementById('causeMortConfirm').onclick = saveCauseMort;
+  document.getElementById('causeMortCancel').onclick = closeCauseMort;
+  document.getElementById('causeMortBg').onclick = e => { if (e.target === document.getElementById('causeMortBg')) closeCauseMort(); };
+  document.getElementById('causeMortTxt').addEventListener('keydown', e => { if (e.key === 'Escape') closeCauseMort(); });
+}
+
+async function init() {
+  try {
+    await fetchData();
+    document.getElementById('loadingOverlay').style.display = 'none';
+    render();
+    setSyncBar('✓ Registre chargé — modifications partagées avec tous', 'saved');
+    setTimeout(() => setSyncBar('Clic gauche = changer statut | Clic droit (décédé) = cause de mort', ''), 3000);
+  } catch(e) {
+    document.getElementById('loadingOverlay').innerHTML = '<p style="font-family:Cinzel,serif;color:#8b1a1a;font-size:13px;padding:20px;text-align:center">Erreur de connexion.<br>Vérifiez la base de données Supabase.</p>';
+    setSyncBar('✕ Connexion impossible', 'error');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initListeners();
+  init();
+});
+</script>
+</body>
+</html>
